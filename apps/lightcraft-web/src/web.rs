@@ -143,8 +143,50 @@ fn open_picker(originals: Originals, backend: Option<Backend>, ctx: egui::Contex
     input.click();
 }
 
+thread_local! {
+    /// Al Majlis: exports kept in memory while capture is on (name, bytes), newest last.
+    static MAJLIS_CAPTURE: std::cell::RefCell<Option<Vec<(String, Vec<u8>)>>> = const { std::cell::RefCell::new(None) };
+    /// Al Majlis: bytes handed in by the page, imported on the next logic pass.
+    static MAJLIS_IMPORTS: std::cell::RefCell<Vec<(String, Vec<u8>)>> = const { std::cell::RefCell::new(Vec::new()) };
+}
+
+/// Al Majlis: keep exports in memory (true) instead of offering them as downloads (false).
+#[wasm_bindgen(js_name = captureDownloads)]
+pub fn capture_downloads(on: bool) {
+    MAJLIS_CAPTURE.with(|c| *c.borrow_mut() = if on { Some(Vec::new()) } else { None });
+}
+
+/// Al Majlis: names of the captured exports, oldest first.
+#[wasm_bindgen(js_name = capturedFiles)]
+pub fn captured_files() -> js_sys::Array {
+    let out = js_sys::Array::new();
+    MAJLIS_CAPTURE.with(|c| if let Some(v) = c.borrow().as_ref() { for (n, _) in v { out.push(&JsValue::from_str(n)); } });
+    out
+}
+
+/// Al Majlis: the bytes of a captured export (empty when unknown).
+#[wasm_bindgen(js_name = readCaptured)]
+pub fn read_captured(name: String) -> Vec<u8> {
+    MAJLIS_CAPTURE.with(|c| c.borrow().as_ref().and_then(|v| v.iter().rev().find(|(n, _)| *n == name).map(|(_, b)| b.clone())).unwrap_or_default())
+}
+
+/// Al Majlis: import `bytes` as photo `name` (stored in browser storage, then imported — the drop path).
+#[wasm_bindgen(js_name = importBytes)]
+pub fn import_bytes(name: String, bytes: Vec<u8>) {
+    MAJLIS_IMPORTS.with(|q| q.borrow_mut().push((name, bytes)));
+    CTX.with(|c| c.borrow().as_ref().map(|c| c.request_repaint()));
+}
+
 /// Offer `bytes` as a download named after `path`.
 fn download(path: &str, bytes: &[u8]) -> Result<(), String> {
+    let captured = MAJLIS_CAPTURE.with(|c| match c.borrow_mut().as_mut() {
+        Some(v) => { v.push((download_name(path).to_string(), bytes.to_vec())); true }
+        None => false,
+    });
+    if captured {
+        log::info!("captured export {} ({} bytes)", download_name(path), bytes.len());
+        return Ok(());
+    }
     let e = |e: JsValue| format!("download failed: {e:?}");
     let arr = js_sys::Array::of1(&js_sys::Uint8Array::from(bytes));
     let opts = web_sys::BlobPropertyBag::new();
@@ -735,6 +777,10 @@ impl eframe::App for WebApp {
             self.app.ui.toast = Some((text, now + NOTICE_SECS, None));
         }
         self.run_inbox();
+        // Al Majlis: bytes handed in through lightcraft.importBytes, imported like a drop.
+        for (name, bytes) in MAJLIS_IMPORTS.with(|q| std::mem::take(&mut *q.borrow_mut())) {
+            wasm_bindgen_futures::spawn_local(store_file(self.originals.clone(), self.backend.clone(), name, bytes, ctx.clone()));
+        }
         self.load_originals(ctx);
         if let Some(w) = &self.workers {
             // `library.preferences ▸ cacheMb` is read by the session; the worker index prunes on
