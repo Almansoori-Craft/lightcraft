@@ -9,6 +9,11 @@ use craft_update::dialog::{CheckResultDialog, CheckResultResponse};
 #[cfg(not(target_arch = "wasm32"))]
 use craft_update::updater::{Action, Status, Updater};
 
+/// Majlis Studio: updates come only through Al Majlis (owner, 2026-11-12). Off: no check at start,
+/// none from a command, so the app never asks the upstream project's GitHub for releases. (The
+/// menus already leave the command out: `crate::links::HIDDEN`.)
+const UPSTREAM_CHECKS: bool = false;
+
 pub(crate) struct Runtime {
     #[cfg(not(target_arch = "wasm32"))]
     updater: Updater,
@@ -66,6 +71,9 @@ pub(crate) fn blocks_input(app: &LightcraftApp) -> bool {
 }
 
 pub(crate) fn check(app: &mut LightcraftApp) -> Result<Value, String> {
+    if !UPSTREAM_CHECKS {
+        return Ok(Value::Null);
+    }
     #[cfg(not(target_arch = "wasm32"))]
     {
         app.updates_rt.check_requested = true;
@@ -85,6 +93,9 @@ pub(crate) fn check(app: &mut LightcraftApp) -> Result<Value, String> {
 pub(crate) fn tick(app: &mut LightcraftApp, ctx: &egui::Context) {
     #[cfg(not(target_arch = "wasm32"))]
     {
+        if !UPSTREAM_CHECKS {
+            return;
+        }
         let rt = &mut app.updates_rt;
         rt.repaint = Some(ctx.clone());
         if std::mem::take(&mut rt.check_requested) {
@@ -191,5 +202,20 @@ mod tests {
         });
         output.textures_delta.clear();
         assert!(app.updates_rt.updater.prompt_open());
+    }
+
+    /// Majlis Studio (owner, 2026-11-12): neither the check at start nor the command asks
+    /// upstream for releases.
+    #[test]
+    fn upstream_update_checks_are_off() {
+        let mut app = LightcraftApp::new(Session::new(), Default::default());
+        #[cfg(not(target_arch = "wasm32"))]
+        app.set_startup_update_check(true);
+        check(&mut app).unwrap();
+        tick(&mut app, &egui::Context::default());
+        assert!(!app.updates_rt.manual_window_open);
+        #[cfg(not(target_arch = "wasm32"))]
+        assert_eq!(app.updates_rt.updater.status(), &Status::Idle);
+        assert!(crate::links::hidden("app.checkForUpdates"));
     }
 }
