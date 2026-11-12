@@ -258,19 +258,22 @@ pub const UI_COMMANDS: &[UiCommand] = &[
     // Settings ▸ Display
     ("app.displayProfile", "Display Profile", None, ""),
     ("app.about", "About LightCraft", None, "Help"),
-    ("app.checkForUpdates", "Check for Updates…", None, "Help"),
+    // (out of the menus in Al Majlis Color: `crate::links::HIDDEN`)
+    ("app.checkForUpdates", "Check for Updates…", None, ""),
     ("app.systemInfo", "System Info…", None, "Help"),
     ("app.openLogFolder", "Open Log Folder", None, "Help"),
     // the frame-rate display (`frame_rate`): a debugging aid, never saved
     ("view.frameRate", "Frame Rate", None, "Help>Debug"),
-    ("app.whatsNew", "What's New", None, "Help"),
+    ("app.whatsNew", "What's New", None, ""),
     ("dialog.cull", "Assisted Culling…", None, "Photo"),
-    ("app.help", "LightCraft Help", Some("F1"), "Help"),
-    ("app.discord", "Join the ArtCraft Discord…", None, "Help"),
-    ("app.feedback", "Send Feedback…", None, "Help"),
-    ("app.website", "LightCraft Website", None, "Help"),
-    ("app.github", "LightCraft on GitHub", None, "Help"),
-    ("app.artcraft", "ArtCraft Website", None, "Help"),
+    // the upstream project's links: kept as commands, out of every menu and shortcut list in
+    // Al Majlis Color (`crate::links::HIDDEN`; F1 no longer opens the upstream docs)
+    ("app.help", "LightCraft Help", None, ""),
+    ("app.discord", "Join the ArtCraft Discord…", None, ""),
+    ("app.feedback", "Send Feedback…", None, ""),
+    ("app.website", "LightCraft Website", None, ""),
+    ("app.github", "LightCraft on GitHub", None, ""),
+    ("app.artcraft", "ArtCraft Website", None, ""),
     ("app.shortcuts", "Keyboard Shortcuts", Some("Cmd+/"), "Help"),
     ("app.setShortcut", "Set Keyboard Shortcut", None, ""),
     ("app.resetShortcuts", "Reset All Keyboard Shortcuts", None, ""),

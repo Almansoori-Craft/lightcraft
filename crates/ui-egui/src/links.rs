@@ -27,6 +27,17 @@ pub const LINKS: &[(&str, &str, &str)] = &[
 /// Where feedback and bug reports go.
 pub const FEEDBACK: &str = "https://github.com/storytold/lightcraft/issues/new";
 
+/// Al Majlis Color shows none of the upstream project's links, update checks or release notes:
+/// these commands stay (scripts and the control channel know them) but no menu, button or
+/// shortcut list offers them.
+pub const HIDDEN: &[&str] =
+    &["app.help", "app.discord", "app.website", "app.github", "app.artcraft", "app.feedback", "app.checkForUpdates", "app.whatsNew"];
+
+/// Whether the command `id` is kept out of sight (see [`HIDDEN`]).
+pub fn hidden(id: &str) -> bool {
+    HIDDEN.contains(&id)
+}
+
 /// The URL behind a link command id.
 pub fn url_of(cmd: &str) -> Option<&'static str> {
     LINKS.iter().find(|(id, _, _)| *id == cmd).map(|(_, _, u)| *u)

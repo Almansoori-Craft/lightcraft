@@ -182,12 +182,17 @@ pub fn register_geometry(ctx: &egui::Context, id: impl Into<String>, rect: Rect)
 /// as focused whether it is idle, hovered or selected. It is drawn inside `rect`, so it survives a
 /// painter clipped to the control. [`crate::check`] draws the same stroke around its box.
 pub fn focus_ring(p: &egui::Painter, rect: Rect, t: &Tokens) {
-    p.rect_stroke(rect, CornerRadius::same(4), focus_stroke(t), StrokeKind::Inside);
+    p.rect_stroke(rect, t.control_radius, focus_stroke(t), StrokeKind::Inside);
 }
 
-/// The stroke of every focus ring: 2 px in the accent colour.
+/// The stroke of every focus ring: 2 px in the theme's focus colour (the accent).
 pub fn focus_stroke(t: &Tokens) -> Stroke {
-    Stroke::new(2.0, t.accent)
+    Stroke::new(2.0, t.focus)
+}
+
+/// The corner radius of a pill `rect` (half its height) under the Al Majlis look, else `box_radius`.
+pub fn pill_radius(t: &Tokens, rect: Rect, box_radius: f32) -> f32 {
+    if t.majlis { (rect.height() / 2.0).floor() } else { box_radius }
 }
 
 /// Esc was handled this frame by something nested (an open popup closed on it): containers such
@@ -246,7 +251,7 @@ pub fn preview_only_notice(ui: &mut Ui, key: &str, reason: &str) -> bool {
     let r = egui::Frame::NONE
         .fill(t.canvas)
         .stroke(Stroke::new(1.0, t.caution.gamma_multiply(0.45)))
-        .corner_radius(6.0)
+        .corner_radius(t.card_radius)
         .inner_margin(egui::Margin { left: 10, right: 10, top: 8, bottom: 9 })
         .show(ui, |ui| {
             ui.set_width(ui.available_width());
@@ -311,10 +316,22 @@ fn track_stops(track: &Track) -> Option<Vec<Color32>> {
     })
 }
 
-fn paint_track(ui: &Ui, rect: Rect, track: &Track, t: &Tokens, thumb_x: f32, ring: f32) {
+/// The slider's track: a colour gradient where the control has one (they are part of judging the
+/// colour and stay as they are), else a plain line; `origin_x` is where its value is zero (or the
+/// nearest end). The Al Majlis look fills a plain track from there to the thumb with the accent and
+/// draws a filled knob, so it leaves no gap round the thumb.
+fn paint_track(ui: &Ui, rect: Rect, track: &Track, t: &Tokens, thumb_x: f32, ring: f32, origin_x: f32) {
     let p = ui.painter();
     let y = rect.center().y;
     let h = 1.0;
+    if t.majlis && track_stops(track).is_none() {
+        p.rect_filled(Rect::from_min_max(pos2(rect.left(), y - h), pos2(rect.right(), y + h)), h, t.track);
+        let (a, b) = (origin_x.min(thumb_x), origin_x.max(thumb_x));
+        if b > a {
+            p.rect_filled(Rect::from_min_max(pos2(a, y - h), pos2(b, y + h)), h, t.accent);
+        }
+        return;
+    }
     if let Some(stops) = track_stops(track) {
         // gradient: segments between stops
         let n = stops.len().max(2) - 1;
@@ -495,7 +512,7 @@ pub fn slider(ui: &mut Ui, spec: &ControlSpec, value: f64, enabled: bool, label_
     }
     let ring = THUMB_RING;
     let tx = g.to_x(v);
-    paint_track(ui, track_rect, &spec.track, &t, tx, ring);
+    paint_track(ui, track_rect, &spec.track, &t, tx, ring, g.to_x(0.0_f64.clamp(spec.min, spec.max)));
     let p = ui.painter();
     let ring_c = if !enabled {
         t.text_disabled
@@ -504,8 +521,14 @@ pub fn slider(ui: &mut Ui, spec: &ControlSpec, value: f64, enabled: bool, label_
     } else {
         t.thumb
     };
-    p.circle_filled(pos2(tx, track_rect.center().y), ring, t.chrome);
-    p.circle_stroke(pos2(tx, track_rect.center().y), ring, Stroke::new(2.0, ring_c));
+    if t.majlis {
+        // a round accent knob, parted from a gradient track by a ring of the surface
+        p.circle_filled(pos2(tx, track_rect.center().y), ring + 1.0, t.chrome);
+        p.circle_filled(pos2(tx, track_rect.center().y), ring, ring_c);
+    } else {
+        p.circle_filled(pos2(tx, track_rect.center().y), ring, t.chrome);
+        p.circle_stroke(pos2(tx, track_rect.center().y), ring, Stroke::new(2.0, ring_c));
+    }
     if hovered {
         ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeHorizontal);
     }
@@ -858,7 +881,12 @@ pub fn section_header(ui: &mut Ui, id: &str, title: &str, open: bool, enabled: O
     register(ui, format!("section:{id}"), r);
     let p = ui.painter();
     if ui.rect_contains_pointer(r) {
-        p.rect_filled(r, 0.0, t.chrome.gamma_multiply(1.06));
+        // (Al Majlis: a raised, rounded hover inside the panel's padding)
+        if t.majlis {
+            p.rect_filled(r.shrink2(vec2(8.0, 4.0)), t.control_radius, t.raised);
+        } else {
+            p.rect_filled(r, 0.0, t.chrome.gamma_multiply(1.06));
+        }
     }
     let chev = Rect::from_center_size(pos2(r.left() + 30.0, r.center().y), vec2(16.0, 16.0));
     paint(p, chev, if open { Icon::ChevronDown } else { Icon::ChevronRight }, t.text_label);
@@ -904,9 +932,10 @@ pub fn flyout_row(ui: &mut Ui, id: &str, title: &str, icon: Icon, open: bool) ->
     announce_disclosure(&resp, true, open, title);
     register(ui, format!("flyout:{id}"), r);
     let p = ui.painter();
-    p.rect_filled(r, 4.0, if resp.hovered() { t.hover.gamma_multiply(0.8) } else { t.inset });
+    let hover = if t.majlis { t.hover } else { t.hover.gamma_multiply(0.8) };
+    p.rect_filled(r, t.control_radius, if resp.hovered() { hover } else { t.inset });
     let tile = Rect::from_min_size(pos2(r.left() + 4.0, r.top() + 4.0), vec2(r.height() - 8.0, r.height() - 8.0));
-    p.rect_filled(tile, 3.0, t.chrome.gamma_multiply(1.15));
+    p.rect_filled(tile, (t.control_radius - 2.0).max(3.0), if t.majlis { t.chrome } else { t.chrome.gamma_multiply(1.15) });
     paint(p, tile.shrink(3.0), icon, t.text_label);
     p.text(pos2(tile.right() + 10.0, r.center().y), Align2::LEFT_CENTER, title, t.semibold(13.0), t.text_label);
     paint(
@@ -929,15 +958,17 @@ pub fn text_button(ui: &mut Ui, id: &str, label: &str, active: bool) -> Response
     resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, active, label));
     register(ui, format!("button:{id}"), r);
     let fill = if active {
-        t.pressed
+        t.selected_fill
     } else if resp.hovered() {
         t.hover
     } else {
         t.button
     };
+    // (Al Majlis: a pill; the selected one is filled with the accent, without an outline)
+    let border = if active && t.majlis { Stroke::NONE } else { Stroke::new(1.0, t.button_border) };
     let p = ui.painter();
-    p.rect(r, CornerRadius::same(4), fill, Stroke::new(1.0, t.button_border), StrokeKind::Inside);
-    p.galley(r.center() - galley.size() / 2.0, galley, t.text);
+    p.rect(r, pill_radius(&t, r, 4.0), fill, border, StrokeKind::Inside);
+    p.galley_with_override_text_color(r.center() - galley.size() / 2.0, galley, if active { t.selected_text } else { t.text });
     resp
 }
 
@@ -965,22 +996,47 @@ pub fn segmented(ui: &mut Ui, id: &str, items: &[(&str, &str)], active: Option<u
     for (row_i, row) in items.chunks(per_row).enumerate() {
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = gap;
+            if t.majlis {
+                // Al Majlis: the row is a rounded track (raised, hairline) holding pill tabs; the
+                // segments keep their places and sizes
+                let n = row.len() as f32;
+                let track = Rect::from_min_size(ui.cursor().min, vec2(seg_w * n + gap * (n - 1.0), 24.0));
+                ui.painter().rect(track, track.height() / 2.0, t.raised, Stroke::new(1.0, t.button_border), StrokeKind::Inside);
+            }
             for (j, (label, key)) in row.iter().enumerate() {
                 let label = crate::i18n::tr(label);
                 let i = row_i * per_row + j;
                 let (r, resp) = ui.allocate_exact_size(vec2(seg_w, 24.0), Sense::click());
                 crate::widgets::announce_selected(&resp, label.to_string(), active == Some(i));
                 register(ui, format!("button:{id}-{key}"), r);
-                let fill = if active == Some(i) {
-                    t.pressed
-                } else if resp.hovered() {
-                    t.hover
-                } else {
-                    t.button
-                };
+                let selected = active == Some(i);
                 let p = ui.painter();
-                p.rect(r, CornerRadius::same(4), fill, Stroke::new(1.0, t.button_border), StrokeKind::Inside);
-                p.text(r.center(), Align2::CENTER_CENTER, label, t.semibold(11.5), t.text);
+                if t.majlis {
+                    // selected = accent pill and white text; others no fill and muted text, the
+                    // text colour on hover
+                    let pill = r.shrink(2.0);
+                    if selected {
+                        p.rect_filled(pill, pill.height() / 2.0, t.selected_fill);
+                    }
+                    let c = if selected {
+                        t.selected_text
+                    } else if resp.hovered() {
+                        t.text
+                    } else {
+                        t.text_dim
+                    };
+                    p.text(r.center(), Align2::CENTER_CENTER, label, t.semibold(11.5), c);
+                } else {
+                    let fill = if selected {
+                        t.pressed
+                    } else if resp.hovered() {
+                        t.hover
+                    } else {
+                        t.button
+                    };
+                    p.rect(r, CornerRadius::same(4), fill, Stroke::new(1.0, t.button_border), StrokeKind::Inside);
+                    p.text(r.center(), Align2::CENTER_CENTER, label, t.semibold(11.5), t.text);
+                }
                 if resp.clicked() {
                     clicked = Some(i);
                 }
@@ -1024,10 +1080,11 @@ pub fn icon_button(ui: &mut Ui, id: &str, icon: Icon, size: egui::Vec2, active: 
     register(ui, format!("icon:{id}"), r);
     let p = ui.painter();
     let sq = Rect::from_center_size(r.center(), vec2(32.0f32.min(size.x), 32.0f32.min(size.y)));
+    // (Al Majlis: a rounded square; selected = soft accent fill with a 1 pt accent outline)
     if active {
-        p.rect_filled(sq, 4.0, t.tool_active);
+        p.rect(sq, t.control_radius, t.tool_active, Stroke::new(1.0, t.tool_active_stroke), StrokeKind::Inside);
     } else if resp.hovered() && enabled {
-        p.rect_filled(sq, 4.0, t.hover.gamma_multiply(0.7));
+        p.rect_filled(sq, t.control_radius, t.tool_hover);
     }
     let c = if !enabled {
         t.text_disabled

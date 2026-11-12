@@ -2,8 +2,13 @@
 //! reference app's dark theme (see plan/lightroom/10-observed-ui.md); everything is our own code.
 //!
 //! Themes come in two families, picked by the Appearance Mode setting (Settings ▸ Interface):
-//! - dark: **Charcoal** (the default, the observed dark look) and **Midnight** (near black);
-//! - light: **Silver** (light grey chrome) and **Paper** (near white).
+//! - dark: **Al Majlis Dark** (the default), **Charcoal** (the observed dark look) and
+//!   **Midnight** (near black);
+//! - light: **Al Majlis Light** (the default), **Silver** (light grey chrome) and **Paper** (near
+//!   white).
+//!
+//! The Al Majlis themes use the Al Majlis Studio look sheet's exact colours and shapes (rounded
+//! controls, pill tabs in a track, 1 pt hairlines); the areas that show photos keep neutral greys.
 
 use std::sync::Arc;
 
@@ -81,6 +86,43 @@ pub struct Tokens {
     /// Cautionary notices (e.g. a raw shown from its embedded preview): a muted amber.
     pub caution: Color32,
     pub mask_overlay: Color32,
+    // Al Majlis look (docs: the owner's MAJLIS_LOOK sheet); the other themes map these onto their
+    // own colours so they draw as before.
+    /// Raised fill: a hovered tool box, a field, a tab track.
+    pub raised: Color32,
+    /// The accent when hovered or pressed.
+    pub accent_hover: Color32,
+    /// Small accent-coloured text.
+    pub accent_text: Color32,
+    /// The soft accent fill of a selected tool.
+    pub accent_soft: Color32,
+    /// Text drawn on an accent fill.
+    pub on_accent: Color32,
+    /// Fill of a selected segment / text button, and the text on it.
+    pub selected_fill: Color32,
+    pub selected_text: Color32,
+    /// Outline of a selected tool box (transparent = none).
+    pub tool_active_stroke: Color32,
+    /// Fill of a hovered tool box.
+    pub tool_hover: Color32,
+    /// Fill of a Danger button (white text reads on it).
+    pub danger_fill: Color32,
+    /// The keyboard-focus ring.
+    pub focus: Color32,
+    // shapes (points)
+    /// Tool boxes, fields, small boxes.
+    pub control_radius: f32,
+    /// Panels, cards, notices.
+    pub card_radius: f32,
+    /// Windows, dialogs, popovers.
+    pub window_radius: u8,
+    /// Menus (and their items: `control_radius`).
+    pub menu_radius: u8,
+    /// The Al Majlis shape language: text buttons, segments and chips are pills (radius = half
+    /// their height) and segments sit in a rounded track; a selected tool box gets an accent
+    /// outline; slider knobs are filled accent dots. Otherwise they keep the boxes of
+    /// `control_radius` and the hollow knob.
+    pub majlis: bool,
     // metrics (points)
     pub top_bar_h: f32,
     pub bottom_bar_h: f32,
@@ -94,25 +136,37 @@ pub struct Tokens {
 /// An interface theme. Each belongs to the dark or the light family.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub enum ThemeKind {
+    /// Al Majlis, dark (the default for a fresh profile).
     #[default]
+    MajlisDark,
     Charcoal,
     Midnight,
+    /// Al Majlis, light.
+    MajlisLight,
     Silver,
     Paper,
 }
 
 impl ThemeKind {
-    pub const ALL: [ThemeKind; 4] = [ThemeKind::Charcoal, ThemeKind::Midnight, ThemeKind::Silver, ThemeKind::Paper];
+    pub const ALL: [ThemeKind; 6] =
+        [ThemeKind::MajlisDark, ThemeKind::Charcoal, ThemeKind::Midnight, ThemeKind::MajlisLight, ThemeKind::Silver, ThemeKind::Paper];
 
     pub fn is_dark(self) -> bool {
-        matches!(self, ThemeKind::Charcoal | ThemeKind::Midnight)
+        matches!(self, ThemeKind::MajlisDark | ThemeKind::Charcoal | ThemeKind::Midnight)
+    }
+
+    /// One of the Al Majlis themes.
+    pub fn is_majlis(self) -> bool {
+        matches!(self, ThemeKind::MajlisDark | ThemeKind::MajlisLight)
     }
 
     /// The theme's id (settings value and command suffix).
     pub fn id(self) -> &'static str {
         match self {
+            ThemeKind::MajlisDark => "majlisDark",
             ThemeKind::Charcoal => "charcoal",
             ThemeKind::Midnight => "midnight",
+            ThemeKind::MajlisLight => "majlisLight",
             ThemeKind::Silver => "silver",
             ThemeKind::Paper => "paper",
         }
@@ -121,8 +175,10 @@ impl ThemeKind {
     /// The English display name.
     pub fn label(self) -> &'static str {
         match self {
+            ThemeKind::MajlisDark => "Al Majlis Dark",
             ThemeKind::Charcoal => "Charcoal",
             ThemeKind::Midnight => "Midnight",
+            ThemeKind::MajlisLight => "Al Majlis Light",
             ThemeKind::Silver => "Silver",
             ThemeKind::Paper => "Paper",
         }
@@ -164,6 +220,23 @@ impl Default for Tokens {
             reject: Color32::from_rgb(0xe0, 0x4a, 0x4a),
             caution: Color32::from_rgb(0xe3, 0xa8, 0x3c),
             mask_overlay: Color32::from_rgba_unmultiplied(0xe0, 0x20, 0x30, 110),
+            // (set from the colours above by `classic`)
+            raised: Color32::TRANSPARENT,
+            accent_hover: Color32::TRANSPARENT,
+            accent_text: Color32::TRANSPARENT,
+            accent_soft: Color32::TRANSPARENT,
+            on_accent: Color32::WHITE,
+            selected_fill: Color32::TRANSPARENT,
+            selected_text: Color32::TRANSPARENT,
+            tool_active_stroke: Color32::TRANSPARENT,
+            tool_hover: Color32::TRANSPARENT,
+            danger_fill: Color32::TRANSPARENT,
+            focus: Color32::TRANSPARENT,
+            control_radius: 4.0,
+            card_radius: 6.0,
+            window_radius: 6,
+            menu_radius: 6,
+            majlis: false,
             top_bar_h: 42.0,
             bottom_bar_h: 48.0,
             panel_w: 270.0,
@@ -172,16 +245,143 @@ impl Default for Tokens {
             section_h: 57.0,
             film_h: 142.0,
         }
+        .classic()
     }
 }
 
 impl Tokens {
-    /// The tokens of `kind`. Metrics are shared; only colours change.
+    /// The Al Majlis tokens of a theme that predates them, from its own colours: it draws as it
+    /// always did (boxes, hollow knobs, a pressed fill for the selected segment).
+    fn classic(self) -> Tokens {
+        Tokens {
+            raised: self.hover,
+            accent_hover: self.accent,
+            accent_text: self.accent,
+            accent_soft: self.tool_active,
+            on_accent: Color32::WHITE,
+            selected_fill: self.pressed,
+            selected_text: self.text,
+            tool_active_stroke: Color32::TRANSPARENT,
+            tool_hover: self.hover.gamma_multiply(0.7),
+            danger_fill: self.reject,
+            focus: self.accent,
+            control_radius: 4.0,
+            card_radius: 6.0,
+            window_radius: 6,
+            menu_radius: 6,
+            majlis: false,
+            ..self
+        }
+    }
+
+    /// The tokens of `kind`. Metrics are shared; colours (and, for the Al Majlis themes, shapes)
+    /// change.
     pub fn for_kind(kind: ThemeKind) -> Tokens {
         let rgb = |v: u32| Color32::from_rgb((v >> 16) as u8, (v >> 8) as u8, v as u8);
+        let rgba = |v: u32, a: u8| Color32::from_rgba_unmultiplied((v >> 16) as u8, (v >> 8) as u8, v as u8, a);
         let base = Tokens::default();
+        // Al Majlis (exact colours from the look sheet). The areas that show photos (canvas, grid,
+        // cells, placeholders, selection rings) keep the neutral greys of Midnight / Paper, so
+        // colours are judged against the same surround as before.
+        let majlis = Tokens {
+            control_radius: 8.0,
+            card_radius: 12.0,
+            window_radius: 16,
+            menu_radius: 12,
+            majlis: true,
+            on_accent: rgb(0xFFFFFF),
+            accent: rgb(0x2563EB),
+            thumb: rgb(0x2563EB),
+            selected_fill: rgb(0x2563EB),
+            selected_text: rgb(0xFFFFFF),
+            tool_active_stroke: rgb(0x2563EB),
+            danger_fill: rgb(0xB42318),
+            ..base
+        };
         match kind {
-            ThemeKind::Charcoal => base,
+            ThemeKind::MajlisDark => Tokens {
+                chrome: rgb(0x17171A),
+                canvas: rgb(0x121212),
+                grid_bg: rgb(0x080808),
+                cell: rgb(0x121212),
+                cell_selected: rgb(0x262626),
+                skeleton: rgb(0x1d1d1d),
+                divider: rgb(0x29292B),
+                inset: rgb(0x202024),
+                field: rgb(0x202024),
+                field_border: rgb(0x29292B),
+                button: rgb(0x202024),
+                button_border: rgb(0x29292B),
+                hover: rgb(0x2E2E34),
+                pressed: rgb(0x2E2E34),
+                tool_active: rgb(0x19233B),
+                text: rgb(0xF4F4F2),
+                text_label: rgb(0xB2B2B1),
+                text_dim: rgb(0x909091),
+                // text at 35 % on the surface
+                text_disabled: rgb(0x646465),
+                icon: rgb(0xB2B2B1),
+                track: rgb(0x2E2E34),
+                thumb_hover: rgb(0x3B82F6),
+                star: rgb(0xF4F4F2),
+                pick: rgb(0xF4F4F2),
+                reject: rgb(0xFDA29B),
+                caution: rgb(0xFEC84B),
+                raised: rgb(0x202024),
+                accent_hover: rgb(0x3B82F6),
+                accent_text: rgb(0x93C5FD),
+                accent_soft: rgb(0x19233B),
+                tool_hover: rgb(0x202024),
+                focus: rgba(0x60A5FA, 128),
+                ..majlis
+            },
+            ThemeKind::MajlisLight => Tokens {
+                ring_active: rgb(0x141414),
+                ring_inner: rgb(0xffffff),
+                ring_selected: rgb(0x4a4a4a),
+                chrome: rgb(0xFFFFFF),
+                canvas: rgb(0xececec),
+                grid_bg: rgb(0xf2f2f2),
+                cell: rgb(0xe8e8e8),
+                cell_selected: rgb(0xd2d2d2),
+                skeleton: rgb(0xbcbcbc),
+                divider: rgb(0xEEEEEE),
+                inset: rgb(0xF6F5F3),
+                field: rgb(0xF6F5F3),
+                field_border: rgb(0xE2E1DE),
+                button: rgb(0xF6F5F3),
+                button_border: rgb(0xE2E1DE),
+                hover: rgb(0xE8E7E3),
+                pressed: rgb(0xE8E7E3),
+                tool_active: rgb(0xE9EFFD),
+                text: rgb(0x141416),
+                text_label: rgb(0x5B5B5C),
+                text_dim: rgb(0x7E7E7F),
+                // text at 35 % on the surface
+                text_disabled: rgb(0xADADAD),
+                icon: rgb(0x5B5B5C),
+                track: rgb(0xE8E7E3),
+                thumb_hover: rgb(0x1D4ED8),
+                star: rgb(0x141416),
+                pick: rgb(0x141416),
+                reject: rgb(0xB42318),
+                caution: rgb(0xB54708),
+                raised: rgb(0xF6F5F3),
+                accent_hover: rgb(0x1D4ED8),
+                accent_text: rgb(0x1D4ED8),
+                accent_soft: rgb(0xE9EFFD),
+                tool_hover: rgb(0xF6F5F3),
+                focus: rgba(0x2563EB, 115),
+                ..majlis
+            },
+            _ => Tokens::classic_kind(kind, base, rgb),
+        }
+    }
+
+    /// The tokens of a theme from before the Al Majlis ones.
+    fn classic_kind(kind: ThemeKind, base: Tokens, rgb: impl Fn(u32) -> Color32) -> Tokens {
+        let t = match kind {
+            ThemeKind::Charcoal | ThemeKind::MajlisDark | ThemeKind::MajlisLight => base,
             ThemeKind::Midnight => Tokens {
                 chrome: rgb(0x1e1e1e),
                 canvas: rgb(0x121212),
@@ -268,7 +468,8 @@ impl Tokens {
                 caution: rgb(0xb0761a),
                 ..base
             },
-        }
+        };
+        t.classic()
     }
 
     pub fn get(ctx: &egui::Context) -> Tokens {
@@ -442,28 +643,57 @@ pub fn apply_kind(ctx: &egui::Context, kind: ThemeKind) {
     v.extreme_bg_color = t.field;
     v.faint_bg_color = t.inset;
     v.window_stroke = Stroke::new(1.0, t.button_border);
-    v.window_corner_radius = CornerRadius::same(6);
-    v.menu_corner_radius = CornerRadius::same(6);
+    v.window_corner_radius = CornerRadius::same(t.window_radius);
+    v.menu_corner_radius = CornerRadius::same(t.menu_radius);
     v.selection.bg_fill = t.accent.gamma_multiply(0.6);
     v.selection.stroke = Stroke::new(1.0, t.accent);
     v.override_text_color = Some(t.text_label);
-    let (popup, window) = if dark { (140, 160) } else { (50, 60) };
+    let (popup, window) = match (dark, t.majlis) {
+        (true, false) => (140, 160),
+        (false, false) => (50, 60),
+        // Al Majlis: a soft shadow, deeper in the dark
+        (true, true) => (110, 130),
+        (false, true) => (28, 36),
+    };
     v.popup_shadow = egui::epaint::Shadow { offset: [0, 4], blur: 16, spread: 0, color: Color32::from_black_alpha(popup) };
     v.window_shadow = egui::epaint::Shadow { offset: [0, 8], blur: 30, spread: 0, color: Color32::from_black_alpha(window) };
+    if t.majlis {
+        // the window/popup background is the card surface; a field is a raised fill
+        v.extreme_bg_color = t.field;
+        v.text_edit_bg_color = Some(t.field);
+        // a focused field: a 1.5 pt accent outline
+        v.selection.stroke = Stroke::new(1.5, t.accent);
+        v.handle_shape = egui::style::HandleShape::Circle;
+        v.slider_trailing_fill = true;
+    }
     let w = &mut v.widgets;
     craft_ui::theme::WidgetPalette { noninteractive: t.chrome, inactive: t.button, hovered: t.hover, active: t.pressed, open: t.hover }.apply_to(
         w,
-        CornerRadius::same(4),
+        CornerRadius::same(t.control_radius as u8),
         Stroke::new(1.0, t.text_label),
     );
     w.noninteractive.bg_stroke = Stroke::new(1.0, t.divider);
     w.inactive.bg_stroke = Stroke::new(1.0, t.button_border);
+    if t.majlis {
+        // hairlines everywhere; the focused/active control gets the accent outline
+        w.hovered.bg_stroke = Stroke::new(1.0, t.button_border);
+        w.active.bg_stroke = Stroke::new(1.5, t.accent);
+        w.open.bg_stroke = Stroke::new(1.0, t.button_border);
+    }
     ctx.set_visuals_of(egui::Theme::Dark, v.clone());
     ctx.set_visuals_of(egui::Theme::Light, v);
     ctx.set_theme(if dark { egui::Theme::Dark } else { egui::Theme::Light });
+    let majlis = t.majlis;
     ctx.all_styles_mut(|s| {
         s.spacing.item_spacing = egui::vec2(6.0, 4.0);
         s.spacing.button_padding = egui::vec2(8.0, 3.0);
+        if majlis {
+            // Al Majlis is airy: a little more room inside buttons and a thin, round scrollbar
+            s.spacing.button_padding = egui::vec2(10.0, 3.0);
+            s.spacing.scroll.bar_width = 8.0;
+            s.spacing.scroll.floating_width = 2.0;
+            s.spacing.scroll.handle_min_length = 24.0;
+        }
         s.spacing.interact_size.y = 22.0;
         s.text_styles.insert(egui::TextStyle::Body, FontId::proportional(13.0));
         s.text_styles.insert(egui::TextStyle::Button, FontId::proportional(13.0));

@@ -101,27 +101,29 @@ fn chip(ui: &mut egui::Ui, path: &str, name: &str, partial: bool, cross: bool, r
         xresp
     });
     let p = ui.painter();
-    p.rect_stroke(rect, 10.0, Stroke::new(1.0, t.field_border), StrokeKind::Inside);
+    // a pill (Al Majlis: radius half its height)
+    let round: u8 = if t.majlis { 11 } else { 10 };
+    p.rect_stroke(rect, f32::from(round), Stroke::new(1.0, t.field_border), StrokeKind::Inside);
     if resp.hovered() {
-        p.rect_filled(rect.shrink(1.0), 10.0, t.hover.gamma_multiply(0.5));
+        p.rect_filled(rect.shrink(1.0), f32::from(round), if t.majlis { t.raised } else { t.hover.gamma_multiply(0.5) });
     }
     p.text(pos2(rect.left() + 8.0, rect.center().y), Align2::LEFT_CENTER, &shown, font, color);
     if let Some(x) = &x {
         // under the pointer the × lights up on its own: this click removes, the name's doesn't
         if x.hovered() {
-            p.rect_filled(x.rect.shrink(1.0), CornerRadius { nw: 0, sw: 0, ne: 10, se: 10 }, t.hover);
+            p.rect_filled(x.rect.shrink(1.0), CornerRadius { nw: 0, sw: 0, ne: round, se: round }, t.hover);
         }
         let (c, arm) = (x.rect.center(), 3.5);
         let stroke = Stroke::new(1.5, if x.hovered() || x.has_focus() { t.text } else { t.text_dim });
         p.line_segment([c + vec2(-arm, -arm), c + vec2(arm, arm)], stroke);
         p.line_segment([c + vec2(-arm, arm), c + vec2(arm, -arm)], stroke);
         if x.has_focus() {
-            p.rect_stroke(x.rect, CornerRadius { nw: 4, sw: 4, ne: 10, se: 10 }, Stroke::new(1.5, t.accent), StrokeKind::Inside);
+            p.rect_stroke(x.rect, CornerRadius { nw: 4, sw: 4, ne: round, se: round }, Stroke::new(1.5, t.accent), StrokeKind::Inside);
         }
     }
     // reached with Tab, a chip shows where the keyboard is
     if resp.has_focus() {
-        p.rect_stroke(rect, 10.0, Stroke::new(1.5, t.accent), StrokeKind::Inside);
+        p.rect_stroke(rect, f32::from(round), Stroke::new(1.5, t.accent), StrokeKind::Inside);
     }
     (resp, x)
 }

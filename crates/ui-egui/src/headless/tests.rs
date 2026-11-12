@@ -4197,10 +4197,10 @@ fn import_rename_tags_insert_at_the_cursor() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
-/// Help ▸ About: the About, Contributors and Models tabs switch and paint (credits are
-/// compiled in).
+/// Help ▸ About (Al Majlis Color): the app's name and the one line on where it comes from, no tabs
+/// and no links.
 #[test]
-fn about_dialog_tabs_show_the_credits() {
+fn about_dialog_shows_the_name_and_where_it_comes_from() {
     // an empty library: the dialog needs no photos, and no decodes compete with other tests
     let services = crate::Services { png: None, ..Default::default() };
     let mut h = Headless::new(LightcraftApp::new(lightcraft_engine::Session::new(), services), [1300.0, 820.0], 1.0);
@@ -4208,20 +4208,13 @@ fn about_dialog_tabs_show_the_credits() {
     let r = h.request("ui.menu.invoke", json!({"id": "app.about"}), t);
     assert_eq!(r["ok"], true, "{r}");
     assert_eq!(h.app.ui.dialog, Some(crate::state::Dialog::About));
-    // a new window sizes itself on its first frame: let it settle before clicking its tabs
     h.step();
     h.step();
-    for (i, (tab, _)) in crate::panels::dialogs::ABOUT_TABS.iter().enumerate().rev() {
-        let r = h.request("ui.clickWidget", json!({"id": format!("button:aboutTab-{tab}")}), t);
-        assert_eq!(r["ok"], true, "{tab}: {r}");
-        h.step();
-        let shown = h.view.ctx.data_mut(|d| d.get_temp::<u8>(egui::Id::unique("about_tab")));
-        assert_eq!(shown.map(usize::from), Some(i), "{tab}");
-    }
-    h.request("ui.clickWidget", json!({"id": "button:aboutTab-contributors"}), t);
+    assert!(!h.app.widgets.iter().any(|(id, _)| id.starts_with("button:aboutTab-") || id == "button:aboutDiscord"), "no tabs, no links");
     let img = h.snapshot(SETTLE);
     assert_eq!(img.size, [1300, 820]);
-    assert_eq!(h.app.ui.dialog, Some(crate::state::Dialog::About), "switching tabs keeps the dialog open");
+    assert_eq!(h.app.ui.dialog, Some(crate::state::Dialog::About), "the dialog stays open");
+    assert_eq!(crate::panels::dialogs::ABOUT_BASED_ON, "Based on LightCraft by the ArtCraft team (MIT OR Apache-2.0).");
 }
 
 /// Settings ▸ Display / `app.displayProfile`: previews are shown through the monitor profile

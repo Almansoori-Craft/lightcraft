@@ -6,9 +6,6 @@ pub(super) fn sam_by_hand(sam: &lightcraft_engine::segment::Segmenter) -> bool {
     !sam.installed() && !sam.download_status().running && sam.mirrors().is_empty()
 }
 
-/// The model installation guide.
-const SAM_HELP: &str = "https://github.com/storytold/lightcraft/blob/main/docs/ai-masks.md#getting-the-model";
-
 /// Open the configured SAM 3 folder itself; revealing a file opens its parent instead.
 pub(crate) fn show_model_folder(app: &mut LightcraftApp) -> Result<serde_json::Value, String> {
     let dir = app.session.segmenter.dir.as_ref().ok_or("no folder is set for the SAM 3 model")?;
@@ -99,13 +96,7 @@ pub(super) fn sam_model_body(app: &mut LightcraftApp, ui: &mut egui::Ui, error: 
                     app.toast_error(ui.ctx(), e);
                 }
             }
-            let r = ui.link(crate::i18n::tr("How to install the model")).on_hover_text(SAM_HELP);
-            crate::widgets::register(ui, "link:samHelp", r.rect);
-            if r.clicked()
-                && let Err(e) = crate::links::open(app, SAM_HELP)
-            {
-                app.toast(ui.ctx(), e);
-            }
+            // (no link to the upstream project's installation guide in Al Majlis Color)
         });
     }
     if let Some(e) = error.map(str::to_string).or(d.error) {

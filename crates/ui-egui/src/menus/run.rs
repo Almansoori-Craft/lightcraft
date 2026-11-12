@@ -1441,7 +1441,7 @@ fn ui_commands_11(app: &mut LightcraftApp, ctx: &egui::Context, id: &str, p: &Va
             let path = match p.get("path").and_then(Value::as_str) {
                 Some(x) => Some(x.to_string()),
                 None => {
-                    let name = format!("{}.lcpreset", group.as_deref().unwrap_or("LightCraft Presets"));
+                    let name = format!("{}.lcpreset", group.as_deref().unwrap_or("Al Majlis Color Presets"));
                     let req = PickRequest::save(crate::i18n::tr("Export Presets"), crate::i18n::tr("LightCraft Preset"), &["lcpreset"], name.clone());
                     match crate::pick::ask(app, id, p, "path", req, |s| s.save_preset_file.as_mut().map(|f| f(&name).into_iter().collect())) {
                         Picked::Now(v) => v.into_iter().next(),

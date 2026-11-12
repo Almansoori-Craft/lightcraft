@@ -46,8 +46,10 @@ pub mod settings;
 pub mod slideshow_export;
 pub mod updates_ui;
 
-/// About dialog tabs: (widget id suffix, label). The credits come from `crate::credits`.
-pub const ABOUT_TABS: &[(&str, &str)] = &[("about", "About"), ("contributors", "Contributors"), ("models", "Models")];
+/// The app's name (About dialog, window title).
+pub const ABOUT_NAME: &str = "Al Majlis Color";
+/// The About dialog's one line about where the app comes from.
+pub const ABOUT_BASED_ON: &str = "Based on LightCraft by the ArtCraft team (MIT OR Apache-2.0).";
 
 /// Help ▸ What's New (docs/whats-new.md).
 pub const WHATS_NEW: &str = include_str!("../../../docs/whats-new.md");
@@ -1861,55 +1863,16 @@ fn remove_folder_body(ui: &mut egui::Ui, t: &Tokens, dlg: &mut Dialog) {
 }
 
 /// The body of the About dialog.
-fn about_body(app: &mut LightcraftApp, ui: &mut egui::Ui, t: &Tokens, dlg: &mut Dialog) {
+///
+/// Al Majlis Color: the app's name and one plain line naming what it is based on (the upstream
+/// brand licence allows exactly that, in plain text). No links, no tabs, no logo.
+fn about_body(_app: &mut LightcraftApp, ui: &mut egui::Ui, t: &Tokens, dlg: &mut Dialog) {
     let Dialog::About = dlg else { return };
-    ui.set_min_width(680.0);
-    let tab_id = egui::Id::unique("about_tab");
-    let mut tab = ui.data_mut(|d| d.get_temp::<u8>(tab_id)).unwrap_or(0);
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = 4.0;
-        for (i, (id, label)) in ABOUT_TABS.iter().enumerate() {
-            if crate::widgets::text_button(ui, &format!("aboutTab-{id}"), label, usize::from(tab) == i).clicked() {
-                tab = u8::try_from(i).unwrap_or(0);
-            }
-        }
-    });
-    ui.data_mut(|d| d.insert_temp(tab_id, tab));
-    ui.separator();
-    match tab {
-        1 => crate::credits::contributors_ui(app, ui),
-        2 => crate::credits::models_ui(ui),
-        _ => {
-            ui.label(egui::RichText::new("LightCraft").font(t.semibold(20.0)).color(t.text));
-            ui.label(crate::i18n::tr_format!("Version {} — a clean-room, pure-Rust photo library and raw developer.", env!("CARGO_PKG_VERSION")));
-            ui.label(crate::i18n::tr_format!(
-                "MIT OR Apache-2.0. Fonts: {} (OFL). Icons: original.",
-                crate::theme::font_credits(app.chinese_font.is_some())
-            ));
-            ui.add_space(10.0);
-            let r = crate::button::Button::new("Join the ArtCraft Discord")
-                .primary()
-                .large()
-                .min_width(260.0)
-                .widget("button:aboutDiscord")
-                .tooltip(crate::links::DISCORD)
-                .show(ui);
-            if r.clicked() {
-                let _ = crate::links::open(app, crate::links::DISCORD);
-            }
-            ui.add_space(6.0);
-            for (label, url) in [
-                ("LightCraft website", crate::links::APP_PAGE),
-                ("Source code on GitHub", crate::links::GITHUB),
-                ("ArtCraft — more creative apps", crate::links::WEBSITE),
-            ] {
-                let r = ui.link(crate::i18n::tr(label)).on_hover_text(url);
-                if r.clicked() {
-                    let _ = crate::links::open(app, url);
-                }
-            }
-        }
-    }
+    ui.set_min_width(480.0);
+    ui.label(egui::RichText::new(ABOUT_NAME).font(t.semibold(20.0)).color(t.text));
+    ui.add_space(4.0);
+    // (not translated: the one place the upstream names appear, word for word)
+    ui.label(egui::RichText::new(ABOUT_BASED_ON).color(t.text_label));
 }
 
 /// The body of the open dialog: what each kind of dialog shows between its title and its buttons. `confirm` is set

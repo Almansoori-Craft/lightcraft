@@ -318,22 +318,23 @@ impl LightcraftApp {
         ctx.send_viewport_cmd(egui::ViewportCommand::Title(self.window_title()));
     }
 
-    /// "LightCraft — <library name>" (just "LightCraft" for a library that isn't saved).
+    /// "Al Majlis Color — <library name>" (just the app's name for a library that isn't saved).
     pub fn window_title(&self) -> String {
+        let app = crate::i18n::APP_NAME;
         match panels::settings::open_library_name(self) {
-            Some(name) => format!("LightCraft — {name}"),
-            None => "LightCraft".to_string(),
+            Some(name) => format!("{app} — {name}"),
+            None => app.to_string(),
         }
     }
 
-    /// The browser page's title: "<file name>[ •] — LightCraft" for the active photo (• while
+    /// The browser page's title: "<file name>[ •] — Al Majlis Color" for the active photo (• while
     /// `unsaved`: changes not yet written to storage), else the window title. The web build has no
     /// window for `ViewportCommand::Title`; a host embedding it reads this title to tell which
     /// document a drop opened and whether it is saved (issue #2397).
     pub fn page_title(&self, unsaved: bool) -> String {
         let dot = if unsaved { " •" } else { "" };
         match self.session.active().and_then(|id| self.session.catalog.photo(id)) {
-            Some(p) => format!("{}{dot} — LightCraft", p.file_name),
+            Some(p) => format!("{}{dot} — {}", p.file_name, crate::i18n::APP_NAME),
             None => format!("{}{dot}", self.window_title()),
         }
     }

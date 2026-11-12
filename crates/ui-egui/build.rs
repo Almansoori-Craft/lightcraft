@@ -75,20 +75,26 @@ fn generate() -> Result<String, Box<dyn std::error::Error>> {
         "/// `build.rs` writes one arm per message from `locales/*-formats.json`.\n",
         "macro_rules! tr_format {\n",
     ));
+    // Al Majlis Color: the upstream app's name in a message is shown as this build's name (the
+    // English source stays the key; see `crate::i18n::brand`)
+    let brand = |text: &str| {
+        text.replace(" a LightCraft", " an Al Majlis Color").replace("A LightCraft", "An Al Majlis Color").replace("LightCraft", "Al Majlis Color")
+    };
     for english in all {
         let en = serde_json::to_string(english)?;
+        let en_shown = serde_json::to_string(&brand(english))?;
         source.push_str(&format!("    ({en} $(, $($args:tt)*)?) => {{\n        match $crate::i18n::language() {{\n"));
         for (_, variant, messages) in &catalogs {
             if let Some(translated) = messages.get(english) {
-                let translated = serde_json::to_string(translated)?;
+                let translated = serde_json::to_string(&brand(translated))?;
                 source.push_str(&format!("            $crate::i18n::Locale::{variant} => format!({translated} $(, $($args)*)?),\n"));
             }
         }
-        source.push_str(&format!("            _ => format!({en} $(, $($args)*)?),\n        }}\n    }};\n"));
+        source.push_str(&format!("            _ => format!({en_shown} $(, $($args)*)?),\n        }}\n    }};\n"));
     }
     source.push_str(concat!(
         "    ($english:literal $(, $($args:tt)*)?) => {\n",
-        "        format!($english $(, $($args)*)?)\n",
+        "        $crate::i18n::brand_string(format!($english $(, $($args)*)?))\n",
         "    };\n",
         "}\n",
         "\n",

@@ -237,7 +237,7 @@ pub fn tr(source: &str) -> &str {
 /// where its shared translation reads wrongly there (Japanese はい / いいえ as a rule's value).
 fn tr_ctx_in<'a>(language: Locale, context: &str, source: &'a str) -> &'a str {
     match language.catalog().get(&format!("{context}|{source}")) {
-        Some(translation) => translation.as_str(),
+        Some(translation) => brand(translation.as_str()),
         None => tr_in(language, source),
     }
 }
@@ -246,15 +246,57 @@ fn tr_ctx_in<'a>(language: Locale, context: &str, source: &'a str) -> &'a str {
 /// out for as long as the `'static` key it was looked up by.
 fn tr_in(language: Locale, source: &str) -> &str {
     if language.catalog().is_empty() {
-        return source;
+        return brand(source);
     }
     thread_local! {
         static VERBATIM: RefCell<BTreeMap<Locale, BTreeMap<String, &'static str>>> = const { RefCell::new(BTreeMap::new()) };
     }
-    VERBATIM.with_borrow_mut(|cache| {
+    let text = VERBATIM.with_borrow_mut(|cache| {
         let verbatim = cache.entry(language).or_insert_with(|| catalog_verbatim(language));
         verbatim.get(source).copied().unwrap_or(source)
-    })
+    });
+    brand(text)
+}
+
+/// The upstream app's name as the built-in text (and every catalog) writes it.
+pub const UPSTREAM_NAME: &str = "LightCraft";
+/// The name this build shows instead (Al Majlis Studio).
+pub const APP_NAME: &str = "Al Majlis Color";
+
+/// `text` with the upstream app's name replaced by [`APP_NAME`]. Messages keep their English
+/// source as the catalog key, so every language is renamed at once, where the text is shown. A
+/// renamed message is made once and kept (built-in messages are few); past a bound, text is
+/// returned as it is rather than kept.
+pub fn brand(text: &str) -> &str {
+    if !text.contains(UPSTREAM_NAME) {
+        return text;
+    }
+    thread_local! {
+        static BRANDED: RefCell<BTreeMap<String, &'static str>> = const { RefCell::new(BTreeMap::new()) };
+    }
+    let branded: Option<&'static str> = BRANDED.with_borrow_mut(|cache| {
+        if let Some(branded) = cache.get(text) {
+            return Some(*branded);
+        }
+        if cache.len() >= 4096 {
+            return None;
+        }
+        let branded: &'static str = Box::leak(rename(text).into_boxed_str());
+        cache.insert(text.to_string(), branded);
+        Some(branded)
+    });
+    branded.unwrap_or(text)
+}
+
+/// [`brand`] for formatted text (the [`tr_format!`] of a message no catalog has).
+pub fn brand_string(text: String) -> String {
+    if text.contains(UPSTREAM_NAME) { rename(&text) } else { text }
+}
+
+/// `text` with [`UPSTREAM_NAME`] as [`APP_NAME`] (English "a" before it becomes "an"). `build.rs`
+/// does the same to the format strings.
+fn rename(text: &str) -> String {
+    text.replace(" a LightCraft", " an Al Majlis Color").replace("A LightCraft", "An Al Majlis Color").replace(UPSTREAM_NAME, APP_NAME)
 }
 
 /// One language's catalog keyed for lookup, with values that outlive the catalog's own borrow.

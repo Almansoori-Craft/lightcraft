@@ -100,11 +100,12 @@ fn search_field(app: &mut LightcraftApp, ui: &mut egui::Ui, t: &Tokens, sr: Rect
         ui.memory_mut(|m| m.request_focus(id));
     }
     let focused = ui.memory(|m| m.has_focus(id));
+    // (Al Majlis: the field keeps its raised fill and gets a 1.5 pt accent outline when focused)
     ui.painter().rect(
         sr,
-        4.0,
-        if focused { t.canvas } else { t.field },
-        Stroke::new(1.0, if focused { t.accent } else { t.field_border }),
+        t.control_radius,
+        if focused && !t.majlis { t.canvas } else { t.field },
+        Stroke::new(if focused && t.majlis { 1.5 } else { 1.0 }, if focused { t.accent } else { t.field_border }),
         StrokeKind::Inside,
     );
     let mut child =
@@ -181,8 +182,8 @@ fn right_icons(app: &mut LightcraftApp, ui: &mut egui::Ui, t: &Tokens, full: Rec
         Some(sc) => format!("{} ({})", crate::i18n::tr("Import Photos…"), crate::menubar::shortcut_text(sc, mac)),
         None => crate::i18n::tr("Import Photos…").to_string(),
     };
+    // (no community button in Al Majlis Color)
     for (id, icon, tip, cmd) in [
-        ("discord", Icon::Chat, "Join the ArtCraft community on Discord", "app.discord"),
         ("cloud", Icon::Cloud, cloud_tip, ""),
         ("help", Icon::Help, "Keyboard shortcuts", "app.shortcuts"),
         ("share", Icon::Share, "Export", "dialog.export"),

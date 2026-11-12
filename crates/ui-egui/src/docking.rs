@@ -385,7 +385,8 @@ pub fn show(app: &mut crate::LightcraftApp, ui: &mut egui::Ui) {
     style.float_hint_label = crate::i18n::tr("Hold {key} to undock").into();
     style.background = t.chrome;
     style.tab_background = t.chrome;
-    style.active_background = t.canvas;
+    // (Al Majlis: the active tab is raised, not a hole of the canvas colour)
+    style.active_background = if t.majlis { t.raised } else { t.canvas };
     style.text = t.text;
     style.inactive_text = t.text_dim;
     style.border = egui::Stroke::new(1.0, t.divider);

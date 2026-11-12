@@ -1749,8 +1749,9 @@ fn ai_masks_without_the_model_offer_the_download() {
         // no location configured in this build: no Download button (only Close), and an agent
         // confirming anyway gets the reason; the dialog stays
         h.step();
-        // …but a way to install it by hand: the guide, and the model folder (created on demand)
-        assert!(h.app.widgets.iter().any(|(id, _)| id == "link:samHelp"), "no installation guide link");
+        // …but a way to install it by hand: the model folder (created on demand); Al Majlis Color
+        // shows no link to the upstream guide
+        assert!(!h.app.widgets.iter().any(|(id, _)| id == "link:samHelp"), "no upstream guide link");
         let shown = std::sync::Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
         let log = shown.clone();
         h.app.services.open_with = Some(Box::new(move |p: &str, editor: &str| {

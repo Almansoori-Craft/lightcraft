@@ -137,10 +137,15 @@ pub fn fold_title(app: &mut LightcraftApp, ui: &egui::Ui, id: &str, r: Rect, res
     register(ui, format!("section:{id}"), r);
     let p = ui.painter();
     if resp.hovered() {
-        p.rect_filled(r, 0.0, t.chrome.gamma_multiply(1.06));
+        // (Al Majlis: a raised, rounded hover inside the panel's padding)
+        if t.majlis {
+            p.rect_filled(r.shrink2(egui::vec2(8.0, 4.0)), t.control_radius, t.raised);
+        } else {
+            p.rect_filled(r, 0.0, t.chrome.gamma_multiply(1.06));
+        }
     }
     if resp.has_focus() {
-        p.rect_stroke(r.shrink(2.0), 4.0, egui::Stroke::new(1.5, t.accent), egui::StrokeKind::Inside);
+        p.rect_stroke(r.shrink(2.0), t.control_radius, egui::Stroke::new(1.5, t.accent), egui::StrokeKind::Inside);
     }
     p.text(pos2(r.left() + 24.0, r.center().y + 2.0), Align2::LEFT_CENTER, title, t.semibold(15.0), t.text);
     let chevron = Rect::from_center_size(pos2(r.right() - 30.0, r.center().y + 2.0), vec2(14.0, 14.0));

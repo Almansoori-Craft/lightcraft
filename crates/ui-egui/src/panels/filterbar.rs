@@ -36,10 +36,10 @@ fn toggle(ui: &mut egui::Ui, id: &str, on: bool, tip: &str, draw: impl FnOnce(&e
     register(ui, format!("filter:{id}"), r);
     let p = ui.painter();
     if on {
-        p.rect_filled(r, 5.0, t.tool_active);
-        p.rect_stroke(r, 5.0, Stroke::new(1.0, t.accent), StrokeKind::Inside);
+        p.rect_filled(r, t.control_radius.max(5.0), t.tool_active);
+        p.rect_stroke(r, t.control_radius.max(5.0), Stroke::new(1.0, t.accent), StrokeKind::Inside);
     } else if resp.hovered() {
-        p.rect_filled(r, 5.0, t.hover);
+        p.rect_filled(r, t.control_radius.max(5.0), if t.majlis { t.tool_hover } else { t.hover });
     }
     draw(
         p,

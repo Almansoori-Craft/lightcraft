@@ -46,7 +46,7 @@ pub const RECENT_LIBRARIES: usize = 8;
 pub enum AppearanceMode {
     /// Follow the operating system's dark/light setting (dark when it gives no answer).
     Auto,
-    /// The dark theme, whatever the system says (the default: LightCraft's look so far).
+    /// The dark theme, whatever the system says (the default).
     #[default]
     Dark,
     Light,
@@ -67,7 +67,9 @@ impl AppearanceMode {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum DarkTheme {
+    /// Al Majlis, dark (the default).
     #[default]
+    MajlisDark,
     Charcoal,
     Midnight,
 }
@@ -76,15 +78,18 @@ pub enum DarkTheme {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum LightTheme {
+    /// Al Majlis, light (the default).
     #[default]
+    MajlisLight,
     Silver,
     Paper,
 }
 
 impl DarkTheme {
-    pub const ALL: [DarkTheme; 2] = [DarkTheme::Charcoal, DarkTheme::Midnight];
+    pub const ALL: [DarkTheme; 3] = [DarkTheme::MajlisDark, DarkTheme::Charcoal, DarkTheme::Midnight];
     pub fn kind(self) -> crate::theme::ThemeKind {
         match self {
+            DarkTheme::MajlisDark => crate::theme::ThemeKind::MajlisDark,
             DarkTheme::Charcoal => crate::theme::ThemeKind::Charcoal,
             DarkTheme::Midnight => crate::theme::ThemeKind::Midnight,
         }
@@ -92,9 +97,10 @@ impl DarkTheme {
 }
 
 impl LightTheme {
-    pub const ALL: [LightTheme; 2] = [LightTheme::Silver, LightTheme::Paper];
+    pub const ALL: [LightTheme; 3] = [LightTheme::MajlisLight, LightTheme::Silver, LightTheme::Paper];
     pub fn kind(self) -> crate::theme::ThemeKind {
         match self {
+            LightTheme::MajlisLight => crate::theme::ThemeKind::MajlisLight,
             LightTheme::Silver => crate::theme::ThemeKind::Silver,
             LightTheme::Paper => crate::theme::ThemeKind::Paper,
         }
@@ -236,8 +242,8 @@ impl Default for AppSettings {
             loupe_messages: true,
             keymap: Default::default(),
             appearance_mode: AppearanceMode::Dark,
-            dark_theme: DarkTheme::Charcoal,
-            light_theme: LightTheme::Silver,
+            dark_theme: DarkTheme::MajlisDark,
+            light_theme: LightTheme::MajlisLight,
             favorite_themes: Vec::new(),
             display_profile: String::new(),
             keyword_chips: KeywordChips::default(),
@@ -342,6 +348,8 @@ impl AppSettings {
     pub fn select_theme(&mut self, kind: crate::theme::ThemeKind) {
         use crate::theme::ThemeKind;
         match kind {
+            ThemeKind::MajlisDark => self.dark_theme = DarkTheme::MajlisDark,
+            ThemeKind::MajlisLight => self.light_theme = LightTheme::MajlisLight,
             ThemeKind::Charcoal => self.dark_theme = DarkTheme::Charcoal,
             ThemeKind::Midnight => self.dark_theme = DarkTheme::Midnight,
             ThemeKind::Silver => self.light_theme = LightTheme::Silver,

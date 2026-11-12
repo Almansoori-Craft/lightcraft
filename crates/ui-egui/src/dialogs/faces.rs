@@ -453,8 +453,10 @@ pub fn model_dialog(app: &mut LightcraftApp, ui: &mut egui::Ui, t: &Tokens, info
         ui.label(RichText::new(crate::i18n::tr("This file cannot be used yet")).font(t.semibold(13.5)).color(t.caution));
         ui.add(
             egui::Label::new(
-                RichText::new(sentence(info["reason"].as_str().unwrap_or("It is not a face recognition model LightCraft understands")))
-                    .color(t.text_label),
+                RichText::new(sentence(crate::i18n::brand(
+                    info["reason"].as_str().unwrap_or("It is not a face recognition model Al Majlis Color understands"),
+                )))
+                .color(t.text_label),
             )
             .wrap(),
         );
@@ -476,7 +478,7 @@ pub fn model_dialog(app: &mut LightcraftApp, ui: &mut egui::Ui, t: &Tokens, info
         ui.add(
             egui::Label::new(
                 RichText::new(format!(
-                    "Downloads from {host}. Once it has arrived and checked out, LightCraft installs it{}.",
+                    "Downloads from {host}. Once it has arrived and checked out, Al Majlis Color installs it{}.",
                     if detector { "" } else { ", starts using it and turns face recognition on" }
                 ))
                 .color(t.text_label),
@@ -513,9 +515,9 @@ pub fn model_dialog(app: &mut LightcraftApp, ui: &mut egui::Ui, t: &Tokens, info
     ui.add_space(4.0);
     check(ui, "faceModel.accept", accepted, "I have read these terms and accept them for my own use");
     let closing = if download {
-        "Nothing is fetched until you accept. The model is kept on this computer only; LightCraft never uploads or shares it."
+        "Nothing is fetched until you accept. The model is kept on this computer only; Al Majlis Color never uploads or shares it."
     } else {
-        "The model is kept on this computer only. LightCraft never uploads or shares it."
+        "The model is kept on this computer only. Al Majlis Color never uploads or shares it."
     };
     ui.label(RichText::new(closing).font(t.font(11.5)).color(t.text_dim));
 }

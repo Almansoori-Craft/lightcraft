@@ -228,7 +228,7 @@ pub(super) fn info(app: &mut LightcraftApp, ui: &mut egui::Ui, id: PhotoId) {
 fn camera_card(ui: &mut egui::Ui, p: &lightcraft_catalog::Photo) {
     let t = Tokens::get(ui.ctx());
     let m = &p.meta;
-    egui::Frame::NONE.fill(t.canvas).corner_radius(6.0).inner_margin(egui::Margin::symmetric(12, 10)).show(ui, |ui| {
+    egui::Frame::NONE.fill(t.canvas).corner_radius(t.card_radius).inner_margin(egui::Margin::symmetric(12, 10)).show(ui, |ui| {
         ui.set_width(ui.available_width());
         let dim = |s: &str| egui::RichText::new(s.to_string()).size(12.0).color(t.text_label);
         if !m.camera.is_empty() {

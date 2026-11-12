@@ -49,6 +49,7 @@ pub fn body(app: &mut LightcraftApp, ui: &mut egui::Ui, t: &Tokens) {
     let needle = search.trim().to_lowercase();
     let mut rows: Vec<(&'static Bindable, Option<String>)> = shortcuts::bindable()
         .iter()
+        .filter(|b| !crate::links::hidden(b.id))
         .map(|b| (b, shortcuts::binding(&app.ui.settings.keymap, b.id, b.default).map(str::to_string)))
         .filter(|(b, sc)| show_all || sc.is_some() || app.recording_shortcut.as_deref() == Some(b.id))
         .filter(|(b, sc)| {

@@ -150,7 +150,7 @@ pub fn look(t: &Tokens, kind: Kind, state: State) -> Look {
     };
     let look = match kind {
         Kind::Primary => filled(t.accent),
-        Kind::Danger => filled(t.reject),
+        Kind::Danger => filled(t.danger_fill),
         Kind::Secondary => Look {
             fill: Some(match state {
                 State::Idle | State::Disabled => t.button,
@@ -375,7 +375,12 @@ impl<'a> Button<'a> {
         let lk = look(&t, self.kind, state);
         // (its own rectangle and its focus ring: a long text never runs over its neighbours)
         let p = &ui.painter_at(rect.expand(5.0));
-        let radius = self.size.radius();
+        // Al Majlis: a button with text is a pill, an icon alone a rounded square
+        let radius = match (t.majlis, self.text.is_some_and(|s| !s.is_empty())) {
+            (true, true) => (rect.height() / 2.0).floor(),
+            (true, false) => t.control_radius,
+            (false, _) => self.size.radius(),
+        };
         if let Some(fill) = lk.fill {
             p.rect_filled(rect, radius, fill);
         }
@@ -384,7 +389,7 @@ impl<'a> Button<'a> {
         }
         // where the keyboard is: an accent ring around it
         if resp.has_focus() {
-            p.rect_stroke(rect.expand(2.0), radius + 2.0, Stroke::new(2.0, t.accent), StrokeKind::Outside);
+            p.rect_stroke(rect.expand(2.0), radius + 2.0, Stroke::new(2.0, t.focus), StrokeKind::Outside);
         }
         let galley = self.galley(ui);
         let icon_s = self.size.icon();

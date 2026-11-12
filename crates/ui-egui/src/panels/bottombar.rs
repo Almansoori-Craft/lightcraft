@@ -101,7 +101,9 @@ fn centre(app: &mut LightcraftApp, ui: &mut egui::Ui, full: Rect, from: f32, to:
     let left = (full.center().x - 60.0 - PILL_W / 2.0).clamp(from, to - w);
     let active = app.session.active().and_then(|id| app.session.catalog.photo(id).cloned());
     let pill = Rect::from_min_size(pos2(left, full.center().y - 15.0), vec2(PILL_W, 30.0));
-    ui.painter().rect_filled(pill, 15.0, t.canvas);
+    // (Al Majlis: a raised pill with a hairline)
+    let pill_fill = if t.majlis { t.raised } else { t.canvas };
+    ui.painter().rect(pill, 15.0, pill_fill, egui::Stroke::new(if t.majlis { 1.0 } else { 0.0 }, t.button_border), egui::StrokeKind::Inside);
     let mut pill_ui =
         ui.new_child(egui::UiBuilder::new().max_rect(pill.shrink2(vec2(10.0, 4.0))).layout(egui::Layout::left_to_right(egui::Align::Center)));
     pill_ui.spacing_mut().item_spacing.x = 3.0;
@@ -150,7 +152,7 @@ fn centre(app: &mut LightcraftApp, ui: &mut egui::Ui, full: Rect, from: f32, to:
     let cresp = ui.interact(copy_r, egui::Id::unique("copy-settings"), Sense::click());
     crate::widgets::announce(&cresp, label.to_string());
     register(ui, "button:copySettings", copy_r);
-    ui.painter().rect_filled(copy_r, 15.0, if cresp.hovered() { t.hover } else { t.canvas });
+    ui.painter().rect_filled(copy_r, 15.0, if cresp.hovered() { t.hover } else { pill_fill });
     ui.painter().text(copy_r.center(), Align2::CENTER_CENTER, label, t.font(13.0), if active.is_some() { t.text_label } else { t.text_disabled });
     if cresp.clicked() && active.is_some() {
         let _ = if has_clip { app.run("develop.paste", json!({})) } else { app.run("develop.copy", json!({})) };
@@ -161,7 +163,7 @@ fn centre(app: &mut LightcraftApp, ui: &mut egui::Ui, full: Rect, from: f32, to:
     let gresp = ui.interact(gear_r, egui::Id::unique("copy-gear"), Sense::click());
     crate::widgets::announce(&gresp, crate::i18n::tr("Copy Settings…"));
     register(ui, "icon:copyGear", gear_r);
-    ui.painter().rect_filled(gear_r, 15.0, if gresp.hovered() { t.hover } else { t.canvas });
+    ui.painter().rect_filled(gear_r, 15.0, if gresp.hovered() { t.hover } else { pill_fill });
     paint(ui.painter(), gear_r.shrink(7.0), Icon::Gear, t.icon);
     if gresp.clicked() {
         let _ = app.run("dialog.copySettings", json!({}));
