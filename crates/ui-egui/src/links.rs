@@ -1,46 +1,13 @@
-//! Community and project links (Help menu, About dialog, top-bar Discord button).
+//! Opening web links in the browser. Al Majlis Color offers none of the upstream project's
+//! links (help pages, community, website, source code, feedback).
 
-/// The app's id in ArtCraft URLs.
-pub const APP: &str = "lightcraft";
-/// The ArtCraft community Discord.
-pub const DISCORD: &str = "https://discord.gg/artcraft";
-/// The ArtCraft website.
-pub const WEBSITE: &str = "https://getartcraft.com";
-/// This app's page on the ArtCraft website.
-pub const APP_PAGE: &str = "https://getartcraft.com/apps/lightcraft";
-/// This app's source repository.
-pub const GITHUB: &str = "https://github.com/storytold/lightcraft";
-
-/// (UI command id, menu label, URL) for each link, in Help-menu order.
-/// The user documentation (docs/ in the repository).
-pub const HELP: &str = "https://github.com/storytold/lightcraft/tree/main/docs";
-
-pub const LINKS: &[(&str, &str, &str)] = &[
-    ("app.help", "LightCraft Help", HELP),
-    ("app.discord", "Join the ArtCraft Discord…", DISCORD),
-    ("app.website", "LightCraft Website", APP_PAGE),
-    ("app.github", "LightCraft on GitHub", GITHUB),
-    ("app.artcraft", "ArtCraft Website", WEBSITE),
-    ("app.feedback", "Send Feedback…", FEEDBACK),
-];
-
-/// Where feedback and bug reports go.
-pub const FEEDBACK: &str = "https://github.com/storytold/lightcraft/issues/new";
-
-/// Al Majlis Color shows none of the upstream project's links, update checks or release notes:
-/// these commands stay (scripts and the control channel know them) but no menu, button or
-/// shortcut list offers them.
-pub const HIDDEN: &[&str] =
-    &["app.help", "app.discord", "app.website", "app.github", "app.artcraft", "app.feedback", "app.checkForUpdates", "app.whatsNew"];
+/// Al Majlis Color shows no update checks or release notes: these commands stay (scripts and the
+/// control channel know them) but no menu, button or shortcut list offers them.
+pub const HIDDEN: &[&str] = &["app.checkForUpdates", "app.whatsNew"];
 
 /// Whether the command `id` is kept out of sight (see [`HIDDEN`]).
 pub fn hidden(id: &str) -> bool {
     HIDDEN.contains(&id)
-}
-
-/// The URL behind a link command id.
-pub fn url_of(cmd: &str) -> Option<&'static str> {
-    LINKS.iter().find(|(id, _, _)| *id == cmd).map(|(_, _, u)| *u)
 }
 
 /// Open `url` in the user's browser (through the host's `open_url` service).
@@ -52,16 +19,10 @@ pub fn open(app: &mut crate::LightcraftApp, url: &str) -> Result<serde_json::Val
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
-    fn links_are_https_and_name_this_app() {
-        for (id, label, url) in LINKS {
-            assert!(url.starts_with("https://"), "{id}");
-            assert!(!label.is_empty());
-            assert_eq!(url_of(id), Some(*url));
+    fn the_upstream_project_links_are_gone() {
+        for id in ["app.help", "app.discord", "app.website", "app.github", "app.artcraft", "app.feedback"] {
+            assert!(!crate::menus::UI_COMMANDS.iter().any(|c| c.0 == id), "{id}");
         }
-        assert!(APP_PAGE.ends_with(&format!("/apps/{APP}")));
-        assert!(GITHUB.ends_with(&format!("/storytold/{APP}")));
     }
 }

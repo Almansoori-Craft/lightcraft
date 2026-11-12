@@ -266,14 +266,6 @@ pub const UI_COMMANDS: &[UiCommand] = &[
     ("view.frameRate", "Frame Rate", None, "Help>Debug"),
     ("app.whatsNew", "What's New", None, ""),
     ("dialog.cull", "Assisted Culling…", None, "Photo"),
-    // the upstream project's links: kept as commands, out of every menu and shortcut list in
-    // Al Majlis Color (`crate::links::HIDDEN`; F1 no longer opens the upstream docs)
-    ("app.help", "LightCraft Help", None, ""),
-    ("app.discord", "Join the ArtCraft Discord…", None, ""),
-    ("app.feedback", "Send Feedback…", None, ""),
-    ("app.website", "LightCraft Website", None, ""),
-    ("app.github", "LightCraft on GitHub", None, ""),
-    ("app.artcraft", "ArtCraft Website", None, ""),
     ("app.shortcuts", "Keyboard Shortcuts", Some("Cmd+/"), "Help"),
     ("app.setShortcut", "Set Keyboard Shortcut", None, ""),
     ("app.resetShortcuts", "Reset All Keyboard Shortcuts", None, ""),
