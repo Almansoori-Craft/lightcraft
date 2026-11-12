@@ -1,13 +1,8 @@
-LightCraft app icon (lightcraft.svg and every file derived from it in this directory:
-lightcraft-small.svg, lightcraft-1024.png, lightcraft-macos-512.png, lightcraft.icns,
-lightcraft.ico, hicolor/).
+Al Majlis Color app icon: every icon file in this directory (lightcraft.svg, lightcraft-small.svg, the PNG renders,
+lightcraft.icns, lightcraft.ico, hicolor/).
 
-Original artwork made for this project by the LightCraft project owner in ArtCraft (no
-third-party material). Licensed like the rest of LightCraft, under either of
+Al Majlis Studio icon, made for the Ministry with Higgsfield (Ideogram Vector), 2026-11-12.
 
-  * Apache License, Version 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
-  * MIT license (https://opensource.org/licenses/MIT)
-
-at your option.
-
-Regenerate the derived files with packaging/icons.sh.
+It replaces the earlier LightCraft artwork (the lynx), which is no longer in this repository's
+icon files. The MIT OR Apache-2.0 licence of the code does not describe this artwork; its use is
+the Ministry's, for Al Majlis Studio.
