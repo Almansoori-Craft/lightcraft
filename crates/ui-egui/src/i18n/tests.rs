@@ -142,7 +142,7 @@ fn catalogs_agree_on_placeholders() {
 #[test]
 fn startup_failure_message_names_the_error_and_the_log() {
     let (title, text) = startup_failed_message("no adapter", Some("/home/a/.config/lightcraft/logs/lightcraft.log"));
-    assert_eq!(title, "LightCraft could not start");
+    assert_eq!(title, "Al Majlis Color could not start");
     assert!(text.contains("no adapter") && text.ends_with("lightcraft.log"), "{text}");
     assert!(!startup_failed_message("no adapter", None).1.contains("log file"));
 }
